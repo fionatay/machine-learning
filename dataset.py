@@ -95,6 +95,25 @@ class DataSet:
         
         #grab the output attribute name, just for printing
         self.targetname = self.attrnames[self.target]
+    
+    def __str__(self):
+        """Human-readable description of contents"""
+	def attribute(index, isInput):
+	    label = isInput ? "INPUT: " : "OUTPUT: "
+	    attr = attrnames[index]
+	    value = values[index].__str__() 
+	    return label + attr + "\n" + "Possible values: " + value + "\n"
+	repre = "DataSet " + name
+	
+	# List inputs/outputs and their possible values
+	for input in inputs:
+	    repre += attribute(input, True)
+	repre += attribute(target, False)
+
+	# Number of data and a single example of data
+	repre += "Number of examples " + len(examples) + "\n"
+	repre += "Sample example: " + ""
+        return repre
 
     def setproblem(self, target, inputs=None, exclude=()):
         """Set (or change) the target and/or inputs.
