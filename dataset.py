@@ -98,22 +98,28 @@ class DataSet:
     
     def __str__(self):
         """Human-readable description of contents"""
-	def attribute(index, isInput):
-	    label = isInput ? "INPUT: " : "OUTPUT: "
-	    attr = attrnames[index]
-	    value = values[index].__str__() 
-	    return label + attr + "\n" + "Possible values: " + value + "\n"
-	repre = "DataSet " + name
-	
-	# List inputs/outputs and their possible values
-	for input in inputs:
-	    repre += attribute(input, True)
-	repre += attribute(target, False)
+        def attribute(index, isInput):
+            label = "INPUT " if isInput else "OUTPUT "
+            attr = self.attrnames[index]
+            value = self.values[index].__str__() 
+            return label + attr + ". " + "Possible values: " + value + "\n"
+        
+        repre = "DataSet " + self.name + "\n"
+        
+        # List inputs/outputs and their possible values
+        for input in self.inputs:
+            repre += attribute(input, True)
+        repre += attribute(self.target, False)
+        repre += "\n"
 
-	# Number of data and a single example of data
-	repre += "Number of examples " + len(examples) + "\n"
-	repre += "Sample example: " + ""
-        return repre
+        # Number of data and a single example of data
+        example = "Number of examples: " + str(len(self.examples)) + "\n"
+        example += "Sample Example: " + "\n"
+        for input in self.inputs:
+            example += "INPUT " + self.attrnames[input] + ": " + str(self.examples[0][input]) + "\n"
+        example += "OUTPUT " + self.attrnames[self.target] + ": " + str(self.examples[0][self.target])
+        
+        return repre + example
 
     def setproblem(self, target, inputs=None, exclude=()):
         """Set (or change) the target and/or inputs.
@@ -200,8 +206,15 @@ orings = DataSet(name='orings', target='Distressed',
 zoo = DataSet(name='zoo', target='type', exclude=['name'],
               attrnames="name hair feathers eggs milk airborne aquatic " +
               "predator toothed backbone breathes venomous fins legs tail " +
-              "domestic catsize type") 
+              "domestic catsize type")
 
+iris = DataSet(name='iris', target='class', attrnames='sepal-length sepal-width petal-length petal-width class')
+
+restaurant = DataSet(name='restaurant', target='wait', attrnames='alt bar fri hun pat price rain res type est wait')
+
+xor = DataSet(name='xor', target='out', attrnames = 'in1 in2 out')
+
+tictactoe = DataSet(name='tic-tac-toe', target='win', attrnames='topleft topmiddle topright middleleft middlemiddle middleright bottomleft bottommiddle bottomright win')
 #______________________________________________________________________________
 
     
