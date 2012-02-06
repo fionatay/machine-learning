@@ -151,6 +151,9 @@ class DecisionTreeLearner(Learner):
             examples = self.dataset.examples
         return [(v, [e for e in examples if e[attr] == v])
                 for v in self.dataset.values[attr]]
+
+    def prune(self, validation_examples):
+        return
     
 def entropy(values):
     "Number of bits to represent the probability distribution in values."
@@ -194,7 +197,7 @@ def test(learner, dataset, examples=None, verbose=0):
 def train_and_test(learner, dataset, start, end):
     """Reserve dataset.examples[start:end] for test; train on the remainder.
     Return the proportion of examples correct on the test examples."""
-    #in the examples variable, save the original examples in the dataset.
+    #In the examples variable, save the original examples in the dataset.
     #  we'll be altering the dataset to pull out testing examples and 
     #  will need to revert it in the end.
     examples = dataset.examples
@@ -210,14 +213,39 @@ def train_and_test(learner, dataset, start, end):
         #   its original examples
         dataset.examples = examples
 
-def train_prune_and_test(learner, dataset, start, end):
+def train_prune_and_test(learner, dataset, start, end, ratio = 0.9):
     """See assignment for how to complete this function."""
-    return 1.0
+    examples = dataset.examples
+    try:
+        all_training = examples[:start] + examples[end:]
+        num_training = int(ratio * len(all_training))
+        
+        training = all_training[:num_training]
+        dataset.examples = training
+        learner.train(dataset)
+        
+        validation = all_training[num_training:]
+        learner.prune(validation)
+
+        print "Given " + str(len(all_training)) + " examples, training on " \
+              + str(len(learner.dataset.examples)) + ", pruning on " + str(len(validation))
+        return test(learner, dataset, examples[start:end])
+    finally:
+        dataset.examples = examples
 
 def cross_validation(learner, dataset, k=10, trials=1):
     """Do k-fold cross_validate and return their mean.
     That is, keep out 1/k of the examples for testing on each of k runs.
     Shuffle the examples first; If trials>1, average over several shuffles."""
+    if trials > 1:
+        list_trials = [cross_validation(learner, dataset, k, 1)
+                       for trial in range(trials)]
+        return sum(list_trials)/len(list_trials)
+    else:
+        test_size = len(dataset.examples)/k
+        train_and_test(learner, dataset, 0, test_size)
+    
+    
     return 1.0
     
 def learningcurve(learner, dataset, trials=10, sizes=None):
@@ -256,9 +284,33 @@ def testAll():
     check(orings1, train_and_test(DecisionTreeLearner(), orings, 10, 23))
     zoo1 = 0.71999999999999997
     check(zoo1, train_and_test(DecisionTreeLearner(), zoo, 75, 100))
+    print
+
+    print "Pruning - checking that no pruning gives same results"
+    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+    iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 1)
+    check(iris1, iris2)
     
+    zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
+    zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 1)
+    check(zoo1, zoo2)
+    print
+
+    print "Pruning - checking that pruning gives better results"
+    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+    iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 0.9)
+    better(iris1, iris2)
+
+    zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
+    zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 0.9)
+    better(zoo1, zoo2)
     print "===Tests finished==="
 
+def better(original, better):
+    if better > original: print "Test passed - improved from " + \
+       str(original) + " to " + str(better)
+    else: print "Test failed - deproved from " + \
+          str(original) + " to " + str(better)
 
 def check(result, expected):
     if result == expected: print "Test passed"
