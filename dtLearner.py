@@ -132,7 +132,17 @@ class DecisionTreeLearner(Learner):
     def information_gain(self, attr, examples):
         """Given an attribute attr and set of examples (examples), return 
         the information gain for that attribute."""
-        return 0.5
+        original_entropy = entropy(self.split_by(self.dataset.target, examples))
+        size = len(examples)
+        
+        split = self.split_by(attr, examples)
+        weighted_entropies = 0
+        for sub in split:
+            sub_examples = sub[1]
+            this_entropy = entropy(self.split_by(self.dataset.target, sub_examples))
+            weighted_entropy = this_entropy * len(sub_examples)/size
+            weighted_entropies += weighted_entropy
+        return original_entropy - weighted_entropies
     
     def split_by(self, attr, examples=None):
         """Return a list of (val, examples) pairs for each val of attr, assuming
@@ -144,8 +154,11 @@ class DecisionTreeLearner(Learner):
     
 def entropy(values):
     "Number of bits to represent the probability distribution in values."
-    return 1
-
+    sizes = [len(sub[1]) for sub in values]
+    totalSize = sum(sizes) * 1.0
+    proportions = [size/totalSize if totalSize > 0 else 0 for size in sizes]
+    entropies = [prop * math.log(prop, 2) if prop > 0 else 0 for prop in proportions]
+    return -sum(entropies)
 #______________________________________________________________________________
 
 def test(learner, dataset, examples=None, verbose=0):
@@ -216,3 +229,37 @@ def learningcurve(learner, dataset, trials=10, sizes=None):
     return [(size, mean([score(learner, size) for t in range(trials)]))
             for size in sizes]
 #______________________________________________________________________________
+
+simpleData = DataSet(examples=[[0, 0, 0], [0, 0, 1], [1, 1, 0], [1, 1, 1]], attrs=[[0, 1], [0, 1], [0,1]], target=0)
+
+def testAll():
+    print "===Tests starting==="
+    print "Entropy - checking computed entropies" 
+    whole_set = [(1, [[1, 1], [1,2]])]
+    check(entropy(whole_set), 0)
+    
+    split_set = [(1, [[1, 0], [1, 1]]), (2, [[2, 0], [2, 1]])]
+    check(entropy(split_set), 1)
+    print
+
+    print "Info gain - checking computed info gains"
+    learner = DecisionTreeLearner()
+    learner.dataset = simpleData
+    check(learner.information_gain(1, learner.dataset.examples), 1)
+    check(learner.information_gain(2, learner.dataset.examples), 0)
+    print
+    
+    print "Learner - checking accuracy"
+    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+    check(iris1, 0.66666666666666663)
+    orings1 = 0.7692307692307692
+    check(orings1, train_and_test(DecisionTreeLearner(), orings, 10, 23))
+    zoo1 = 0.71999999999999997
+    check(zoo1, train_and_test(DecisionTreeLearner(), zoo, 75, 100))
+    
+    print "===Tests finished==="
+
+
+def check(result, expected):
+    if result == expected: print "Test passed"
+    else: print "Test failed. Expected " + str(expected) + ", got " + str(result)
