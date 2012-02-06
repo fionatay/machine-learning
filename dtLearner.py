@@ -154,7 +154,7 @@ class DecisionTreeLearner(Learner):
 
     def prune(self, validation_examples):
         return
-    
+
 def entropy(values):
     "Number of bits to represent the probability distribution in values."
     sizes = [len(sub[1]) for sub in values]
@@ -227,8 +227,6 @@ def train_prune_and_test(learner, dataset, start, end, ratio = 0.9):
         validation = all_training[num_training:]
         learner.prune(validation)
 
-        print "Given " + str(len(all_training)) + " examples, training on " \
-              + str(len(learner.dataset.examples)) + ", pruning on " + str(len(validation))
         return test(learner, dataset, examples[start:end])
     finally:
         dataset.examples = examples
@@ -237,23 +235,28 @@ def cross_validation(learner, dataset, k=10, trials=1):
     """Do k-fold cross_validate and return their mean.
     That is, keep out 1/k of the examples for testing on each of k runs.
     Shuffle the examples first; If trials>1, average over several shuffles."""
-    if trials > 1:
-        list_trials = [cross_validation(learner, dataset, k, 1)
+    examples = dataset.examples[:]
+    trials = [single_cross_validation(learner, shuffle(dataset), k) \
                        for trial in range(trials)]
-        return sum(list_trials)/len(list_trials)
-    else:
-        test_size = len(dataset.examples)/k
-        train_and_test(learner, dataset, 0, test_size)
-    
-    
-    return 1.0
+    dataset.examples = examples
+    return sum(trials)/len(trials)
+
+def single_cross_validation(learner, dataset, k):
+    """A single run of k-fold cross-validation, which returns the mean"""
+    num_testing = int(len(dataset.examples)/k)
+    trials = [train_and_test(learner, dataset, i*num_testing, (i+1)*num_testing) \
+              for i in range(k)]
+    return sum(trials)/len(trials)
+
+def shuffle(dataset):
+    random.shuffle(dataset.examples)
+    return dataset
     
 def learningcurve(learner, dataset, trials=10, sizes=None):
     if sizes == None:
         sizes = range(2, len(dataset.examples)-10, 2)
     def score(learner, size):
-        random.shuffle(dataset.examples)
-        return train_and_test(learner, dataset, 0, size)
+        return train_and_test(learner, shuffle(dataset), 0, size)
     return [(size, mean([score(learner, size) for t in range(trials)]))
             for size in sizes]
 #______________________________________________________________________________
@@ -262,48 +265,59 @@ simpleData = DataSet(examples=[[0, 0, 0], [0, 0, 1], [1, 1, 0], [1, 1, 1]], attr
 
 def testAll():
     print "===Tests starting==="
-    print "Entropy - checking computed entropies" 
-    whole_set = [(1, [[1, 1], [1,2]])]
-    check(entropy(whole_set), 0)
-    
-    split_set = [(1, [[1, 0], [1, 1]]), (2, [[2, 0], [2, 1]])]
-    check(entropy(split_set), 1)
-    print
+    def entropyAndInfoGain():
+        print "Entropy - checking computed entropies" 
+        whole_set = [(1, [[1, 1], [1,2]])]
+        check(entropy(whole_set), 0)
+        
+        split_set = [(1, [[1, 0], [1, 1]]), (2, [[2, 0], [2, 1]])]
+        check(entropy(split_set), 1)
+        print
 
-    print "Info gain - checking computed info gains"
-    learner = DecisionTreeLearner()
-    learner.dataset = simpleData
-    check(learner.information_gain(1, learner.dataset.examples), 1)
-    check(learner.information_gain(2, learner.dataset.examples), 0)
-    print
-    
-    print "Learner - checking accuracy"
-    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
-    check(iris1, 0.66666666666666663)
-    orings1 = 0.7692307692307692
-    check(orings1, train_and_test(DecisionTreeLearner(), orings, 10, 23))
-    zoo1 = 0.71999999999999997
-    check(zoo1, train_and_test(DecisionTreeLearner(), zoo, 75, 100))
-    print
+        print "Info gain - checking computed info gains"
+        learner = DecisionTreeLearner()
+        learner.dataset = simpleData
+        check(learner.information_gain(1, learner.dataset.examples), 1)
+        check(learner.information_gain(2, learner.dataset.examples), 0)
+        print
+    entropyAndInfoGain()
+    def learningAndValidation():
 
-    print "Pruning - checking that no pruning gives same results"
-    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
-    iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 1)
-    check(iris1, iris2)
-    
-    zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
-    zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 1)
-    check(zoo1, zoo2)
-    print
+        print "Learner - checking accuracy"
+        iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+        check(iris1, 0.66666666666666663)
+        orings1 = 0.7692307692307692
+        check(orings1, train_and_test(DecisionTreeLearner(), orings, 10, 23))
+        zoo1 = 0.71999999999999997
+        check(zoo1, train_and_test(DecisionTreeLearner(), zoo, 75, 100))
+        print
 
-    print "Pruning - checking that pruning gives better results"
-    iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
-    iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 0.9)
-    better(iris1, iris2)
+        print "Cross validation - checking for reasonable results"
+        acc = cross_validation(DecisionTreeLearner(), iris, 5, 1)
+        better(0, acc)
+        print
 
-    zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
-    zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 0.9)
-    better(zoo1, zoo2)
+    learningAndValidation()
+    def pruning():
+        print "Pruning - checking that no pruning gives same results"
+        iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+        iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 1)
+        check(iris1, iris2)
+        
+        zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
+        zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 1)
+        check(zoo1, zoo2)
+        print
+
+        print "Pruning - checking that pruning gives better results"
+        iris1 = train_and_test(DecisionTreeLearner(), iris, 135, 150)
+        iris2 = train_prune_and_test(DecisionTreeLearner(), iris, 135, 150, 0.9)
+        better(iris1, iris2)
+
+        zoo1 = train_and_test(DecisionTreeLearner(), zoo, 75, 100)
+        zoo2 = train_prune_and_test(DecisionTreeLearner(), zoo, 75, 100, 0.9)
+        better(zoo1, zoo2)
+    pruning()
     print "===Tests finished==="
 
 def better(original, better):
