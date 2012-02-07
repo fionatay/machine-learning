@@ -213,8 +213,6 @@ class DecisionTreeLearner(Learner):
                 self.dt = best_tree
             else:
                 print 'Deleting ', best_node, 'not beneficial'
-            print 'Old tree: ', self.dt
-            print 'New tree: ', new_learner.dt
             print
             break            
         return
@@ -303,12 +301,12 @@ def cross_validation(learner, dataset, prune=False, k=10, trials=1):
     That is, keep out 1/k of the examples for testing on each of k runs.
     Shuffle the examples first; If trials>1, average over several shuffles."""
     examples = dataset.examples[:]
-    trials = [single_cross_validation(learner, shuffle(dataset), k) \
+    trials = [single_cross_validation(learner, shuffle(dataset), prune, k) \
                        for trial in range(trials)]
     dataset.examples = examples
     return sum(trials)/len(trials)
 
-def single_cross_validation(learner, dataset, k):
+def single_cross_validation(learner, dataset, prune, k):
     """A single run of k-fold cross-validation, which returns the mean"""
     num_testing = int(len(dataset.examples)/k)
     trials = [train_prune_and_test(learner, dataset, i*num_testing, (i+1)*num_testing) if prune else \
@@ -395,8 +393,10 @@ def testPruning():
     better(zoo1, zoo2)
 
 def testCrossV():
-    
-    
+    print "Cross validation should give somewhat consistent results"
+    cv_p = cross_validation(DecisionTreeLearner(), iris, True, 5, 10)
+    cv_np = cross_validation(DecisionTreeLearner(), iris, False, 5, 10)
+    print "Iris 5-fold validated 10 times", "Pruning", cv_p, "No pruning", cv_np
 
 def better(original, better):
     if better > original: print "Test passed - improved from " + \
