@@ -214,6 +214,8 @@ restaurant = DataSet(name='restaurant', target='wait', attrnames='alt bar fri hu
 
 xor = DataSet(name='xor', target='out', attrnames = 'in1 in2 out')
 
+mush = DataSet(name='mushroom', target=0)
+
 tictactoe = DataSet(name='tic-tac-toe', target='win', attrnames='topleft topmiddle topright middleleft middlemiddle middleright bottomleft bottommiddle bottomright win')
 #______________________________________________________________________________
 

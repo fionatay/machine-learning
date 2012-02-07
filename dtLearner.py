@@ -287,10 +287,13 @@ def train_prune_and_test(learner, dataset, start, end, ratio = 0.66):
         training = all_training[:num_training]
         dataset.examples = training
         learner.train(dataset)
-
+        size = len(learner.dt.uniquify())
+        
         validation = all_training[num_training:]
         print 'Total training', len(all_training), 'Initial training', len(training), 'Pruning', len(validation), 'Testing', end-start
         learner.prune(validation)
+        final_size = len(learner.dt.uniquify())
+        print 'Initial dt size', size, 'Final size', final_size
 
         return test(learner, dataset, examples[start:end])
     finally:
@@ -393,10 +396,21 @@ def testPruning():
     better(zoo1, zoo2)
 
 def testCrossV():
-    print "Cross validation should give somewhat consistent results"
-    cv_p = cross_validation(DecisionTreeLearner(), iris, True, 5, 10)
-    cv_np = cross_validation(DecisionTreeLearner(), iris, False, 5, 10)
-    print "Iris 5-fold validated 10 times", "Pruning", cv_p, "No pruning", cv_np
+    print "Iris - ID3 and ID3 with pruning"
+    iris_p = cross_validation(DecisionTreeLearner(), iris, True, 5, 10)
+    iris_np = cross_validation(DecisionTreeLearner(), iris, False, 5, 10)
+    print "Iris 5-fold validated 10 times", "Pruning", iris_p, "No pruning", iris_np
+
+    print "Mush - ID3 and ID3 with pruning"
+    m_p = cross_validation(DecisionTreeLearner(), mush, True, 5, 10)
+    m_np = cross_validation(DecisionTreeLearner(), mush, False, 5, 10)
+    print "Mush 5-fold validated 10 times", "Pruning", m_p, "No pruning", m_np
+
+    print "Restaurant - ID3 and ID3 with pruning"
+    r_p = cross_validation(DecisionTreeLearner(), restaurant, True, 5, 10)
+    r_np = cross_validation(DecisionTreeLearner(), restaurant, False, 5, 10)
+    print "Restaurant 5-fold validated 10 times", "Pruning", r_p, "No pruning", r_np
+
 
 def better(original, better):
     if better > original: print "Test passed - improved from " + \
