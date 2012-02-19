@@ -212,7 +212,7 @@ class DecisionTreeLearner(Learner):
                     best_acc = acc
 
             print 'Accuracy new <- old ', best_acc, original_accuracy, 'from', best_node
-            if best_acc > original_accuracy: # Could find a viable node to delete
+            if best_acc >= original_accuracy: # Could find a viable node to delete
                 print 'Deleting ', best_node, 'beneficial'
                 self.dt = best_tree
             else: # No more improvements possible
@@ -386,9 +386,9 @@ def testAccuracy():
     print
 
     print "Cross validation - checking for reasonable results"
-    acc = cross_validation(DecisionTreeLearner(), iris, 5, 1)
+    acc = cross_validation(DecisionTreeLearner(), iris, False, 5, 1)
     better(0, acc)
-    prinr
+    print
 
 def testPruning():
     print "Pruning - checking that pruning gives better results"
