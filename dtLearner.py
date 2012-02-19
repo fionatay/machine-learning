@@ -211,12 +211,12 @@ class DecisionTreeLearner(Learner):
                     best_tree = new_tree
                     best_acc = acc
 
-            print 'Accuracy new <- old ', best_acc, original_accuracy, 'from', best_node
+            # print 'Accuracy new <- old ', best_acc, original_accuracy, 'from', best_node
             if best_acc >= original_accuracy: # Could find a viable node to delete
-                print 'Deleting ', best_node, 'beneficial'
+                # print 'Deleting ', best_node, 'beneficial'
                 self.dt = best_tree
             else: # No more improvements possible
-                print 'Deleting ', best_node, 'not beneficial'
+                # print 'Deleting ', best_node, 'not beneficial'
                 return
 
 def entropy(values):
